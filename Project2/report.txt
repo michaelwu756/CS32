@@ -1,0 +1,448 @@
+//Project 2 Report - Michael Wu - UCLA ID 404751542
+//Description of doubly linked list implementation
+/*
+The doubly linked list in my Multiset is a non cyclic list with head and tail pointers. There are no dummy
+nodes, and the head and tail pointers are null pointers when there are no elements in the list. Each node contains
+a field for an ItemType variable, a count, a pointer to the next node, and a pointer to the previous node.
+Upon construction, each node's next and previous pointers are null pointers. New nodes are only created when
+a unique ItemType value is inserted into the list. Otherwise the count of the node with the previous
+ItemType value is increased by 1. New nodes are inserted at the end of the list, so it is ordered
+according to the order of insertion.
+
+A typical instance of my multiset has pointers to the head and tail of a doubly linked list, and traverses
+the list by repeatedly following the next pointer in each node. It is possible to traverse the list using the
+previous pointers as well. The head node's previous pointer is a null pointer and the tail node's next pointer
+is a null pointer. There are fields for the total number of elements the multiset and the number of unique
+elements in the multiset.
+
+An empty multiset's head and tail pointers are null pointers, and no nodes are in the multiset. The field for the
+number of items and the number of unique items in the list are both 0.
+*/
+//Pseudocode
+//void combine(const Multiset& ms1, const Multiset& ms2, Multiset& result)
+/*
+	create a temporary multiset ms
+	copy ms1 and ms2 into ms
+	set result equal to ms
+*/
+//void subtract(const Multiset& ms1, const Multiset& ms2, Multiset& result)
+/*
+	create a temporary multiset ms
+	copy ms1 into ms
+	loop through each element of ms2 and erase it from ms
+	set result equal to ms
+*/
+//Multiset()
+/*
+	trivial
+*/
+//Multiset(const Multiset& src)
+/*
+	set m_numItems and m_numUniqueItems to be the same as the source
+	if src has no elements
+		set head and tail pointers to null
+	else
+		make head point to a new node with the same data as the head of src
+		while the next node in src is not null
+			create a copy of the next node in src
+			link the copy to the new list in this
+		make tail point to the last node in this
+*/
+//~Multiset()
+/*
+	starting at head node
+	while current node is not null
+		go to next node
+		delete previous node		
+*/
+//Multiset& operator= (const Multiset& src)
+/*
+	if this and src are not the same object
+		delete all nodes in list
+		set scalar member variables to be the same as source
+		if src has no elements
+			set head and tail pointers to null
+		else
+			point head to new node with same values as src head
+			for every node in src
+				create new node with same value as source node
+				link new node to list in this
+			set tail to last node
+	return reference to this
+*/
+//bool empty() const
+/*
+	trivial
+*/
+//int size() const
+/*
+	trivial
+*/
+//int uniqueSize() const
+/*
+	trivial
+*/
+//bool insert(const ItemType& value)
+/*
+	if there are no elements in the list
+		create a new head node to hold value
+		make tail point to head node
+		add 1 to unique size and size and return true
+	else traverse the list starting from head
+		if a node already contains value
+			add 1 to its count
+	if 1 was not added to any node
+		create a new node to hold value
+		link new node to tail
+		make tail point to new node
+		add 1 to unique size
+	add 1 to size
+	return true
+*/
+//int erase(const ItemType& value)
+/*
+	traverse the list starting from head
+		if the value is found
+			if it has duplicates
+				decrease count of value by 1
+			else
+				link list to not include node containing value
+				delete node containing value
+				decrease unique size by 1
+			decrease size by 1
+			return 1
+	return 0
+*/
+//int eraseAll(const ItemType& value)
+/*
+	traverse the list starting from head
+		if the value is found
+			note how many to erase
+			link list to not include node containing value
+			delete node containing value
+			decrease unique size by 1
+			decrease size by number of elements erased
+			return number of elements erased
+	return 0
+*/
+//bool contains(const ItemType& value) const
+/*
+	traverse the list starting from head
+		if the value is found
+			return true
+	return false
+*/
+//int count(const ItemType& value) const
+/*
+	traverse the list starting from head
+		if the value is found
+			return count
+	return false
+*/
+//int get(int i, ItemType& value) const
+/*
+	if i is a valid index
+		start at head pointer
+		move pointer to point to next node i times
+		set value equal to value at current node
+		return count at current node
+	return -1
+*/
+//bool getLeastFrequentValue(ItemType &value) const
+/*
+	if there are elements in the list
+		assume the count in first node is the lowest frequency
+		traverse list
+			if a lower count is found, set that to the lowest frequency
+		traverse list
+			count how many times the lowest frequency occurs
+		if the lowest frequency only occurs once
+			set value to the value at that node
+			return true
+	return false
+*/
+//bool getSmallestValue(ItemType &value) const
+/*
+	if there are elements in the list
+		assume the value in the first node is the lowest value
+		traverse list
+			if a lower value is found, set that to the lowest value
+		set value to the lowest value
+		return true
+	return false
+*/
+//bool getSecondSmallestValue(ItemType &value) const
+/*
+	if there are at least two elements in the list
+		find the smallest value
+		if the first node does not have the smallest value
+			assume the first node is the second smallest value
+		else
+			assume the second node is the second smallest value
+		traverse the list
+			if there is a value lower than the second smallest value that is not the smallest value
+				set the second smallest value equal to that
+		set value equal to second smallest value
+		return true
+	return false
+*/
+//bool replace(ItemType original, ItemType new_value)
+/*
+	if the original is in the list
+		if the new value is the same as the original
+			return true
+		if the new value is in the list
+			get the node with the original value
+			get the node with the new value
+			add count of original to the count of the new value
+			delete node with original value
+			link list to work without the deleted node
+			decrease number of unique items
+		else
+			get the node with the original value
+			change the original value to new value
+	return false
+*/
+//int countIf(char op, ItemType value) const
+/*
+	make a running total
+	if op=='='
+		return count(value)
+	else if op=='<'
+		traverse the list
+			if a node has a value < the parameter value
+				add the associated count to the running total
+		return total
+	else if op=='>'
+		traverse the list
+			if a node has a value > the parameter value
+				add the associated count to the running total
+		return total
+	return -1
+*/
+//void swap(Multiset& other)
+/*
+	create temp variables for all member variables and swap  them
+*/
+//void copyIntoOtherMultiset(Multiset &other) const
+/*
+	create temporary multiset ms that is the same as other
+	traverse the list
+		for each node, insert the value of the node into ms repeatedly
+		do it the number of times the value appears in the original multiset
+	set other equal to ms
+*/
+//TEST CASES
+//the following code thoroughly tests each function, where the typedef for ItemType is std::string 
+#include "Multiset.h"
+#include <string>
+#include <cassert>
+using namespace std;
+void testCombine()
+{
+	Multiset ms1, ms2;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	ms2.insert("4");ms2.insert("5");ms2.insert("6");
+	combine(ms1,ms2,ms1);
+	assert(ms1.uniqueSize()==6 && ms2.uniqueSize()==3);//test combine for two different multisets
+	combine(ms1,ms1,ms1);
+	assert(ms1.uniqueSize()==6 && ms1.size()==12);//test for aliasing
+}
+void testSubtract()
+{
+	Multiset ms1, ms2;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	ms2.insert("3");ms2.insert("4");ms2.insert("5");
+	subtract(ms1,ms2,ms1);
+	assert(ms1.uniqueSize()==2 && ms2.uniqueSize()==3);//test that only "3" was subtracted from ms1
+	subtract(ms1,ms1,ms1);
+	assert(ms1.empty());//test for aliasing
+}
+void testDefaultConstructor()
+{
+	Multiset ms1;
+	assert(ms1.size()==0 && ms1.uniqueSize()==0);//test that variables were initialized correctly
+}
+void testCopyConstructor()
+{
+	Multiset ms1;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	Multiset ms2=ms1;
+	assert(ms2.size()==3);//test that ms1 was copied into ms2
+	ms2.erase("2");
+	assert(ms2.size()==2&&ms1.size()==3);//test that ms1 and ms2 do not point to the same list
+}
+void testDestructor()
+{
+	Multiset* p;
+	p=new Multiset();
+	p->insert("1");p->insert("2");p->insert("3");
+	delete p;//test that the destructor works
+}
+void testAssignmentOperator()
+{
+	Multiset ms1,ms2;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	ms2.insert("4");ms2.insert("5");
+	ms2=ms1;
+	assert(ms2.size()==3);//test that ms2 is a copy of ms1
+	ms2.erase("2");
+	assert(ms2.size()==2&&ms1.size()==3);//test that ms2 and ms2 do not point to the same list
+}
+void testEmpty()
+{
+	Multiset ms1;
+	assert(ms1.empty());//test that it is empty
+	ms1.insert("1");
+	assert(!ms1.empty());//test that it is not empty
+}
+void testSize()
+{
+	Multiset ms1;
+	assert(ms1.size()==0);//test that it is empty so size is 0
+	ms1.insert("1");ms1.insert("1");
+	assert(ms1.size()==2);//test that size increases every time insert is called
+}
+void testUniqueSize()
+{
+	Multiset ms1;
+	assert(ms1.uniqueSize()==0);
+	ms1.insert("1");ms1.insert("1");
+	assert(ms1.uniqueSize()==1);//test that adding duplicates does not increase unique size
+}
+void testInsert()
+{
+	Multiset ms1;
+	for (int i=0;i<1000000;i++)
+		assert(ms1.insert("1"));//test that insert always returns true and no limit on number of items in list
+	assert(ms1.size()==1000000);//test that insert actually inserted the items
+}
+void testErase()
+{
+	Multiset ms1;
+	ms1.insert("1");ms1.insert("1");ms1.insert("2");
+	assert(ms1.erase("1")==1 && ms1.erase("2")==1 && ms1.erase("3")==0);//test that erase returns 1 when it erases
+	assert(ms1.size()==1&&ms1.uniqueSize()==1);//test that it removes items from list
+}
+void testEraseAll()
+{
+	Multiset ms1;
+	ms1.insert("1");ms1.insert("1");ms1.insert("2");
+	assert(ms1.eraseAll("1")==2 && ms1.eraseAll("2")==1&& ms1.eraseAll("3")==0);//test that eraseAll returns the correct number
+	assert(ms1.size()==0&&ms1.uniqueSize()==0);//test that it removes items from list
+}
+void testContains()
+{
+	Multiset ms1;
+	ms1.insert("1");
+	assert(ms1.contains("1")&&!ms1.contains("2"));//test that contains works
+}
+void testCount()
+{
+	Multiset ms1;
+	ms1.insert("1");ms1.insert("1");ms1.insert("1");ms1.insert("1");ms1.insert("1");
+	assert(ms1.count("1")==5);//tests that count returns correctly
+}
+void testGet()
+{	
+	Multiset ms1;
+	ms1.insert("1");ms1.insert("1");ms1.insert("1");ms1.insert("1");ms1.insert("1");
+	ms1.insert("2");ms1.insert("2");ms1.insert("2");ms1.insert("2");
+	string x="a";
+	assert(ms1.get(2,x)==0 && x=="a");//tests that get does not change value when out of bounds
+	assert(ms1.get(-1,x)==0 && x=="a");//tests that get does not work for negative indexes
+	assert(ms1.get(0,x)!=0 && (x=="1"||x=="2"));//tests that it changes the value
+	if (x=="1")//tests that get returns correct int and changes value correctly
+		assert(ms1.get(1,x)==4 && x=="2");
+	else
+		assert(ms1.get(1,x)==5 && x=="1");
+}
+void testGetLeastFrequentValue()
+{
+	Multiset ms1;
+	string x="a";
+	assert(ms1.getLeastFrequentValue(x)==false && x=="a");//tests that it returns false when no elements
+	ms1.insert("1");ms1.insert("1");ms1.insert("1");ms1.insert("1");ms1.insert("1");
+	ms1.insert("2");ms1.insert("2");ms1.insert("2");ms1.insert("2");ms1.insert("2");
+	assert(ms1.getLeastFrequentValue(x)==false && x=="a");//tests that it returns false when two elements are the least
+	ms1.erase("2");
+	assert(ms1.getLeastFrequentValue(x)==true && x=="2");//tests that it returns true when there is a least frequent element
+}
+void testGetSmallestValue()
+{
+	Multiset ms1;
+	string x="a";
+	assert(ms1.getSmallestValue(x)==false&&x=="a");//tests that it returns false when no elements
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	assert(ms1.getSmallestValue(x)==true&&x=="1");//tests that it returns true and gets the correct value
+}
+void testGetSecondSmallestValue()
+{
+	Multiset ms1;
+	string x="a";
+	assert(ms1.getSecondSmallestValue(x)==false&&x=="a");//tests that it returns false when no elements
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	assert(ms1.getSecondSmallestValue(x)==true&&x=="2");//tests that it returns true and gets the correct value
+}
+void testReplace()
+{
+	Multiset ms1;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	assert(ms1.replace("4","3")==false);//tests that it does not replace when original value is not found
+	assert(ms1.replace("3","4")==true && ms1.uniqueSize()==3 && ms1.size()==3);//tests that it works when new value is not already in list
+	assert(ms1.replace("4","2")==true && ms1.uniqueSize()==2 && ms1.size()==3);//tests that it works when new value is already in list
+	assert(ms1.replace("2","2")==true && ms1.uniqueSize()==2 && ms1.size()==3);//tests that it works when new value is same as original
+}
+void testCountIf()
+{
+	Multiset ms1;
+	assert(ms1.countIf('!',"4")==-1);//tests that it returns -1 when first parameter is not '=','<', or '>'
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");ms1.insert("4");ms1.insert("4");ms1.insert("4");ms1.insert("5");
+	ms1.insert("5");ms1.insert("6");
+	assert(ms1.countIf('=',"5")==2 && ms1.countIf('<',"5")==6 && ms1.countIf('>',"5")==1);//tests that it counts correctly
+}
+void testSwap()
+{
+	Multiset ms1, ms2;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	ms2.insert("4");ms2.insert("5");
+	ms1.swap(ms2);
+	assert(ms1.size()==2 && ms2.size()==3);//tests that ms1 and ms2 are swapped
+	ms1.swap(ms1);
+	assert(ms1.size()==2);//tests for aliasing
+}
+void testCopyIntoOtherMultiset()
+{
+	Multiset ms1, ms2;
+	ms1.insert("1");ms1.insert("2");ms1.insert("3");
+	ms2.insert("4");ms2.insert("5");
+	ms1.copyIntoOtherMultiset(ms2);
+	assert(ms2.size()==5);//tests that elements from ms1 were added to ms2
+	ms2.copyIntoOtherMultiset(ms2);
+	assert(ms2.uniqueSize()==5 && ms2.size()==10);//tests for aliasing
+}
+int main()
+{
+	testCombine();
+	testSubtract();
+	testDefaultConstructor();
+	testCopyConstructor();
+	testDestructor();
+	testAssignmentOperator();
+	testEmpty();
+	testSize();
+	testUniqueSize();
+	testInsert();
+	testErase();
+	testEraseAll();
+	testContains();
+	testCount();
+	testGet();
+	testGetLeastFrequentValue();
+	testGetSmallestValue();
+	testGetSecondSmallestValue();
+	testReplace();
+	testCountIf();
+	testSwap();
+	testCopyIntoOtherMultiset();
+}

@@ -1,0 +1,78 @@
+4.
+a) the time complexity is O(N^2). This is because iterating through the multiset takes N steps through
+the for loop, it calls the get(k,x) function which takes O(N) time. Thus the number of steps grows
+with respect to N^2. The swap function is O(1), so that can be ignored. The contains function
+is also O(N), but does not get called on every iteration through the for loop, so it can also be
+ignored.
+b) the average case time complexity is O(N log N), which is due to the sorting algorithm. The other parts
+of the code are all O(N), so they can be ignored. This is because the for and while loops only do operations
+that act in constant time. This implementation is better than the previous one because it has a better time
+complexity.
+
+5.
+a)
+int countInversions(int a[], int n)
+{
+	int inversions =0;
+	for(int i=0; i<n;i++)
+		for(int j=i;j<n;j++)
+			if(a[i]<a[j])
+				inversions++;
+	return inversions;
+}
+b)
+int merge(int data[], int n1, int n2)
+{
+	int i=0, j=0, k=0;
+	int *temp = new int[n1+n2];
+	int *sechalf = data+n1;
+	int inversions = 0;
+
+	while (i < n1 || j < n2)
+	{
+		if (i == n1)
+			temp[k++] = sechalf[j++];
+		else if (j == n2)
+			temp[k++] = data[i++];
+		else if (data[i] < sechalf[j])
+			temp[k++] = data[i++];
+		else
+		{
+			//if the second half needs to be placed before elements in the first half, add the number of elements
+				remaining to be merged in the first half to the number of inversions
+			temp[k++] = sechalf[j++];
+			inversions+=n1-i;
+		}
+	}
+	for (i=0;i<n1+n2;i++)
+		data[i] = temp[i];
+	delete [] temp;
+	return inversions;
+}
+int mergeCountInversions(int* arr, int size)
+{
+	if (size <=1)
+		return 0;
+	int mid=size/2;
+	int inversions=0;
+	inversions+=mergeCountInversions(arr,mid);//get number of inversions in first half
+	inversions+=mergeCountInversions(arr+mid,size-mid);//get number of inversions in second half
+	inversions+=merge(arr,mid,size-mid);//add number of inversions when merging
+	return inversions;
+}
+int getInversions(int const * arr, int size)
+{
+	int * temp = new int[size];//create new array to preserve the original
+	for(int i=0;i<size;i++)
+		temp[i]=arr[i];
+	int inv= mergeCountInversions(temp,size);//merge sort the new array, counting inversions as it goes
+	delete []temp;
+	return inv;
+}
+6.
+First, create a multimap using a binary search tree. Loop through the N doubles and insert them into the tree,
+incrementing a counter in an already existing node if the double was already added to the tree. Because there are
+only log(N) nodes, the height of the tree will grow with respect to log(log(N)), so inserting a value takes log(log(N))
+time. Inserting for N values takes N log(log(N)) time. Once all the values are inserted, traverse the map using in
+order traversal to copy the values in the correct order back into the array. This takes N time, so it can be ignored.
+Thus the total time complexity of this algorithm is O(N log(log(N)).

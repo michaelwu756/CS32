@@ -1,0 +1,18 @@
+sorting overview
+traversal
+big o of
+doubly linked list
+vector
+map
+hash table
+binary search tree
+
+
+54321
+
+543 21
+
+5 43 2 1
+5 34 2 1  1
+345 2 1 3
+345 12 4

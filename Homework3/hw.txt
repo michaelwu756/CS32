@@ -1,0 +1,9 @@
+When inserting the URL object into the multiset, the multiset must search itself to see if there are any previous
+instances of that URL object in the multiset. It does this using the Multiset<T>::find(const URL& value) function.
+In that function, there is a statement that checks if the URL objects in the multiset are not equal to the URL object
+passed to the function. It is the statement
+
+p->m_value != value
+
+where p->m_value and value are both of type URL. This statement causes a compile error because the operator !=
+is not defined for objects of the type URL.

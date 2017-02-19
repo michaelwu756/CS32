@@ -1,0 +1,574 @@
+//report.txt
+//michael wu
+//id 404751542
+//1. the following is psuedocode for each public and private member function as well as my design choices
+
+class StudentWorld : public GameWorld
+{
+	public:
+		virtual int init();
+		/*
+			initializes and resets member variables
+			checks if player has completed level 99, indicates that the game is won if true
+			loads the level from files, indicates a level error if it fails
+			initializes a pointer to the player in the main level
+		*/
+		virtual int move();
+		/*
+			decreases game time by 1
+			updates display text
+			tells each actor to do something in the current sublevel
+				checks after each call to do something if the player is dead
+					decreases lives and returns that the player died if true
+				checks after each call to do something if the level is finished
+					returns that the level is finished if true
+			adds new actors that were created to the list of actors
+			remove dead actors from the list of actors
+			changes sublevel, if necessary
+			shows exit if no gold, hostages, or robots are left
+			decreases lives and returns that the player died if there is no game time left
+			otherwise return to continue the game
+		*/
+		virtual void cleanUp();
+		/*
+			deletes every actor from actor list
+			deletes every actor from actors to add list
+			clears the actor list
+			clears the actors to add list
+		*/
+
+		void addActor(Actor* a);
+		//pushes a to the actors to add list
+		void goToSubLevel(int lvl);
+		//stores lvl in nextSubLevel
+		void finishLevel();
+		//increases score by the game time and set levelFinished to true
+		void increasePlayerAmmo();
+		//increases player ammo by AMMO_INCREASE
+		void restorePlayerHP();
+		//restores player hp to full
+		void farplaneGunExplosion(int x, int y);
+		/*
+			decreases player hp by FARPLANE_GUN_DAMAGE
+			loops through each actor in a 9x9 box around the farplane gun
+				if the actor is a bully or gangster
+					damage the actor by BULLY_HP+GANGSTER_HP so it dies
+		*/
+		void damageActors(int x, int y);
+		//call damage() on each actor at x,y
+		std::vector<int> consumeGoodies(int x, int y);
+		/*
+			set each restore health, ammo, or extra life goodie on x,y to dead
+			return a vector with their numbers corresponding to which goodies were destroyed
+		*/
+		
+		int bullyCount(int x, int y, int d) const;
+		//counts bullies in a box extending d squares from x,y
+		bool moveBlocked(int x, int y) const;
+		//returns true if there is a wall, gangster, bully, waterpool, robot, bully nest, or player at x,y
+		bool isPlayerAt(int x, int y) const;
+		//checks if player is at x,y
+		bool isFakeWallAt(int x, int y) const;
+		//checks if there is a fake wall at x,y
+
+	private:
+		bool loadLevel(int lvl);
+		/*
+			creates a string based on the int lvl
+			loads main level
+			return false if main level load fails
+			tries to load each sublevel starting from 1
+				returns false if sublevel has bad format
+			otherwise continue loading the next sublevel if it loads correctly and is under MAX_SUB_LEVEL
+			
+			for each sublevel
+				for each x coordinate
+					for each y coordinate
+						get the object type at x,y,sublevel
+						create the appropriate actor if it is not empty
+							add 1 to objectives if the actor is a gold, hostage, or robot boss
+						add the actor to the actor list at the correct sublevel
+			return true
+		*/
+		void changePlayer(int subLevel);
+		/*
+			for each actor in the actor list at subLevel
+				if the actor is the player
+					change the player pointer to point to the actor
+		*/
+		void updateDisplay();
+		//format a string with the display info and set it to display
+		void removeDead();
+		/*
+			goes through current sublevel
+				delete any dead actors
+				if the dead actor is a gold, hostage, or robot boss, decrease the number of objectives
+				erase the pointer for the dead actor from ActorList
+		*/
+		void pushNewActors();
+		/*
+			for each actor in the actors to add container
+				push the actor to the front of the actor list at the current sublevel
+			clear the actors to add container
+		*/
+		void changeSubLevel();
+		/*
+			if the next sublevel is not equal to the current sublevel
+				store the player's hp and ammo
+				change player pointer to point to the player in the next sublevel
+				update the player in the next sublevel's hp and ammo
+				set current sublevel to next sublevel
+		*/
+		void showExit();
+		//find and reveal exit
+		std::vector<Actor*> getActorsAt(int x, int y, int d=0) const;
+		/*
+			use x,y, and d to get bounds for a box extending d coordinates from x,y
+			create an empty vector of actor pointers to return
+			for each actor in the current sublevel
+				if the actor's coordinates are within the bounds
+					add the actor's pointer to the return vector
+			return the return vector
+		*/
+};
+class Actor : public GraphObject
+{
+	public:
+		Actor(int imageID, int startX, int startY, Direction dir, int sub_level);
+		//actors are visible by default
+		virtual void doSomething();
+		//does nothing if actor is dead, otherwise call uniqueAction
+		virtual bool dead() const;
+		//returns false
+		virtual void damage(int dmg=BULLET_DAMAGE);
+		//does nothing, but is virtual so it can be overridden by shooting actors
+	private:
+		virtual void uniqueAction();
+		//does nothing, but is overridden in derived classes
+};
+
+class LiveActor : public Actor
+{
+	public:
+		LiveActor(StudentWorld* w, int imageID, int startX, int startY, Direction dir, int sub_level, int hitPoints, int score=0);
+		void setHP(int val);
+		int getHP() const;
+		int getScore() const;
+		void moveCoordForward(int& x, int& y) const;
+		//changes x and y to the coordinate in front of it, based on the direction on the actor
+		StudentWorld* getWorld() const;
+		virtual bool dead() const;
+		//returns true if hp is less than or equal to 0
+};
+class Consumable : public LiveActor
+{
+	public:
+		Consumable(StudentWorld* w, int imageID, int startX, int startY, int sub_level, int score, int sound);
+	private:
+		bool checkPlayer();
+		/*
+			if the player is on the square the consumable is on
+				play an appropriate sound
+				increase the score appropriately
+				set the consumable to dead
+				return true
+			otherwise return false
+		*/
+		virtual void uniqueAction();
+		//if checkPlayer returns true, then call consumeEffect
+		virtual void consumeEffect() const;
+		//virtual function for derived classes to override
+};
+class ShootingActor : public LiveActor
+{
+	public:
+		ShootingActor(StudentWorld* w, int imageID, int startX, int startY, Direction dir, int sub_level, int hitPoints, int deathSound, int hitSound, int score=0);
+		void fire() const;
+		//create a bullet in front of the actor
+		virtual void damage(int dmg=BULLET_DAMAGE);
+		/*
+			decrease hp by dmg
+			if the actor died
+				play a death sound effect
+				execute the death behaviour
+			otherwise
+				play a hit sound effect
+		*/
+	private:
+		int m_deathSound;
+		int m_hitSound;
+	
+		virtual void deathBehaviour() const;
+		//does nothing by default
+};
+class BadGuy : public ShootingActor
+{
+	public:
+		BadGuy(StudentWorld* w, int imageID, int startX, int startY, Direction dir, int sub_level, int hitPoints, int score);
+		//initializes ticks based on level
+	private:
+		void addTick();
+		//increases tickCount, sets it back to 0 if it equals the max ticks
+		bool resting() const;
+		//only returns false when tickCount is 0 
+		bool shootsPlayer() const;
+		//calls shootsPlayer on the coordinate in front of the bad guy
+		bool shootsPlayer(int x,int y) const;
+		/*
+			if there is a fake wall at x,y
+				return false
+			if there is a player at x,y
+				fire, play a fire sound and return true
+			if movement is blocked at x,y
+				return false
+			otherwise recursively return shootsPlayer on the next coordinate ahead
+		*/
+		virtual void uniqueAction();
+		/*
+			add a tick
+			if the bad guy is not resting
+				try to shoot
+				if bad guy does not shoot
+					execute move behaviour
+		*/
+		virtual void moveBehaviour();
+		/*
+			if square in front of actor is move blocked
+				reverse direction
+			otherwise
+				move forward one square
+		*/
+		virtual void deathBehaviour() const;
+		//drops an object and increases score appropriately
+		virtual void dropObject() const=0;
+		//pure virtual because every bad guy drops object differently
+};
+
+class Wall : public Actor
+{
+	public:
+		Wall(int startX, int startY, int sub_level);
+};
+class FakeWall : public Actor
+{
+	public:
+		FakeWall(int startX, int startY, int sub_level);
+};
+
+class Waterpool : public LiveActor
+{
+	public:
+		Waterpool(StudentWorld* w, int startX, int startY, int sub_level);
+	private:
+		virtual void uniqueAction();
+		//decreases hp by 1
+};
+class BullyNest : public LiveActor
+{
+	public:
+		BullyNest(StudentWorld* w, int startX, int startY, int sub_level);
+	private:
+		virtual void uniqueAction();
+		/*
+			if there are less than 3 bullies within 3 squares and no bullies on the bully nest
+				generate a random number with 1/50 chance to be 0
+				if the random number is 0
+					play the bully born sound and add a bully to the student world at the correct location
+		*/
+};
+class Bullet : public LiveActor
+{
+	public:
+		Bullet(StudentWorld* w, int startX, int startY, Direction dir, int sub_level);
+
+	private:
+		bool checkHit();
+		/*
+			if the square the bullet is on is move blocked
+				damage all actors there
+				set the bullet to dead and return true
+			otherwise return false
+		*/
+		virtual void uniqueAction();
+		/*
+			check if the bullet hit anything
+			move forward one coordinate
+			check if the bullet hit anything
+		*/
+};
+
+class Gold : public Consumable
+{
+	public:
+		Gold(StudentWorld* w, int startX, int startY, int sub_level);
+};
+class Hostage : public Consumable
+{
+	public:
+		Hostage(StudentWorld* w, int startX, int startY, int sub_level);
+};
+class AmmoGoodie : public Consumable
+{
+	public:
+		AmmoGoodie(StudentWorld* w, int startX, int startY, int sub_level);
+	private:
+		virtual void consumeEffect() const;
+		//tell student world to add ammo to the player
+};
+class ExtraLifeGoodie : public Consumable
+{
+	public:
+		ExtraLifeGoodie(StudentWorld* w, int startX, int startY, int sub_level);
+	private:
+		virtual void consumeEffect() const;
+		//tell student world to add a life
+};
+class RestoreHealthGoodie : public Consumable
+{
+	public:
+		RestoreHealthGoodie(StudentWorld* w, int startX, int startY, int sub_level);
+	private:
+		virtual void consumeEffect() const;
+		//tell student world to set player hp to full
+};
+class FarplaneGun : public Consumable
+{
+	public:
+		FarplaneGun(StudentWorld* w, int startX, int startY, int sub_level);
+	private:
+		virtual void consumeEffect() const;
+		//tell student world to make a farplane gun explosion at the current location
+};
+class Gate : public Consumable
+{
+	public:
+		Gate(StudentWorld* w, int startX, int startY, int sub_level, int target);
+	private:
+		virtual void consumeEffect() const;
+		//tell the student world to set the next sublevel to the gate's target
+};
+class Exit : public Consumable
+{
+	public:
+		Exit(StudentWorld* w, int startX, int startY, int sub_level);
+		//set exit to not be visible
+		virtual void doSomething();
+		//if the exit is revealed, call Actor::doSomething()
+		void reveal();
+		//set the exit to be revealed and play an appropriate sound
+		bool isRevealed() const;
+	private:
+		virtual void consumeEffect() const;
+		//tell the student world to finish the level
+};
+
+class Player : public ShootingActor
+{
+	public:
+		Player(StudentWorld* w, int startX, int startY, int sub_level);
+		void setAmmo(int toAdd);
+		int getAmmo() const;
+	private:
+		virtual void uniqueAction();
+		/*
+			recieve input from keyboard
+				if the esc key was pressed
+					suicide
+				if the space key was pressed
+					if there is ammo
+						fire and play sound appropriately
+				if a direction key was pressed
+					set the direction to that direction
+					try to move forward in that direction if not move blocked
+		*/
+};
+
+class Gangster : public BadGuy
+{
+	public:
+		Gangster(StudentWorld* w, int startX, int startY, int sub_level, Direction d);
+	private:
+		virtual void dropObject() const;
+		//drop a waterpool
+};
+class RobotBoss : public BadGuy
+{
+	public:
+		RobotBoss(StudentWorld* w, int startX, int startY, int sub_level);
+	private:	
+		virtual void dropObject() const;
+		//drop a hostage
+};
+class Bully : public BadGuy
+{
+	public:
+		Bully(StudentWorld* w, int startX, int startY, int sub_level);
+		//randomly assign a distance to move before turning
+	private:
+		virtual void moveBehaviour();
+		/*
+			try to pick up goodies on the square the bully is on
+			if no goodies were picked up
+				if the bully has to turn or it is move blocked
+					randomly create a new distance before turning
+					reset move counter
+					shuffle the four directions in a vector
+					save the first direction in the vector
+					repeatedly
+						try to move in the last direction in the vector
+							if the move is sucessful increase move count
+						pop the back direction in the vector
+					until the bully has moved or all directions have been tried
+					if the bully hasn't moved change its direction to the first direction
+				else
+					move forward and increase move count
+		*/
+		virtual void dropObject() const;
+		/*
+			for each goodie in the bully's picked up goodies vector
+				create an appropriate goodie
+				add to studentWorld at the correct location
+		*/
+		bool pickUpGoodies();
+		/*
+			tell student world to consume goodies on current square
+			if no goodies were consumed
+				return false
+			otherwise push all the consumed goodie's ids into the vector of picked up goodies
+			play munch sound and return true
+		*/
+};
+
+/*
+I chose to put damage() and dead() in Actor because every actor has a "what to do when damaged" section,
+and the studentworld needs to remove dead actors after every tick, so each actor must be able to determine
+if it is dead or not. They are virtual because derived classes can implement them differently. doSomething()
+is also virtual and in Actor because the spec requires it to be, and so that the Exit class can override it.
+
+I chose to put hp, score, and a pointer to the studentworld in LiveActor because live actors can die and
+need to interact with the student world. Most live actors give the player a score when they die. The acessor
+methods are not virtual because they do not need to be implemented differently for each actor. also, dead()
+does not need to be implemented differently for each actor, but it is virtual because it is inherited from
+Actor. I also put moveCoordForward in liveActor because it helps live actors interact with the student world.
+
+I chose to put checkPlayer() in consumable because all consumables need to check if the player is on the same
+square as the consumable. all consumables doSomething is the same, it simply checks if the player collects
+the consumable and executes a consume effect, which is virtual so derived classes can implement it differently.
+
+I chose to put fire(), damage(), and deathBehaviour() in shootingActor because shooting actors can kill each other.
+fire is the same for each, so it is not virtual. damage is inherited, so it has to be virtual. deathBehaviour is virtual
+because each shooting actor dies differently, but it has a default action of doing nothing because Player does not 
+do anything when it dies.
+
+I chose to put addTick(), resting(), and shootsPlayer(), in badGuy because all bad guys rest and shoot the same way.
+They are not virtual. moveBehaviour is virtual but has a default behaviour because gangsters and robot bosses move the same way,
+but bullys do not. deathBehaviour is virtual because it is inherited, but all bad guys play a sound and drop objects when
+they die. drop Object is pure virtual because each bad guy drops different objects.
+
+I chose to put doSomething in Exit because exit only does something if it is revealed. I made reveal public in order for 
+studentworld to reveal the exit when no more objectives are left.
+
+I chose to put getAmmo and setAmmo in player and make it public because the student world needs to
+be able to change the player's ammo.
+*/
+
+//2. I have no functionality I did not implement and no known bugs.
+//3. Other Design Choices
+/*
+I decided to add new actors to the front of the vector of actors, in order to prevent the player from
+walking into his own bullets
+
+I made it such that the game times being decremented happens before the text is updated, so that
+2999 displays as the game time if the game is frozen at the very beginning. This is how the sample
+behaves. Also bad guys do not doSomething at the first tick. They wait until the time left displays
+3000-ticks, where ticks is the value calculated in the constructor of badGuy.
+*/
+//4. how I tested each class
+class Wall : public Actor
+/*
+	I tried moving into a wall, and the player did not move into it. It stops bullets and prevents
+	bad guys from moving into it.
+*/
+class FakeWall : public Actor
+/*
+	I moved the player into a fake wall, and bad guys did not shoot at the player. Bullets travel through
+	fake walls, and damage badguys and the player if they hit while behind a fake wall. bad guys
+	can move through fake walls and create objects underneath fake walls.
+*/
+class Waterpool : public LiveActor
+/*
+	I tried shooting waterpools and moving into them. It blocked both. Also I verified that it disappears
+	after 30 ticks;
+*/
+class BullyNest : public LiveActor
+/*
+	I created a breakpoint to see the bully count, and saw that it detected bullies correctly. It
+	stops movement and bullets, but bullies are damaged when they are on the same square as a bully nest
+	and they get shot.
+*/
+class Bullet : public LiveActor
+/*
+	I shot things and saw that the bullet behaves correctly, it stops and damages an actor
+	if it is created inside a move blocking object, and also stops and damages when it moves into something.
+*/
+class Gold : public Consumable
+/*
+	I collected all the gold and saw it gave the correct points, sound, and revealed the exit when it was
+	the last objective.
+*/
+class Hostage : public Consumable
+/*
+	I collected all the hostages and saw it gave the correct points, sound, and revealed the exit when it was
+	the last objective.
+*/
+class AmmoGoodie : public Consumable
+/*
+	I collected an ammo goodie and saw it gave the correct points, sound, and ammo.
+*/
+class ExtraLifeGoodie : public Consumable
+/*
+	I collected an extra life goodie and saw it gave the correct points, sound, and extra life.
+*/
+class RestoreHealthGoodie : public Consumable
+/*
+	I collected a restore health goodie and saw it gave the correct points, sound, and hp.
+*/
+class FarplaneGun : public Consumable
+/*
+	I collected a farplane gun and saw it gave the correct points, sound, and destroyed bullies and
+	gangsters.
+*/
+class Gate : public Consumable
+/*
+	I stepped on a gate and saw it transported me to the correct sublevel.
+*/
+class Exit : public Consumable
+/*
+	I verified that the exit only appears after all the objectives are gone and it ends the level
+	when stepped on with the correct sound and points.
+*/
+class Player : public ShootingActor
+/*
+	I suicided, shot, and moved in all four directions to verify the player takes input correctly.
+*/
+class Gangster : public BadGuy
+/*
+	I observed that the gangster moved every 7th tick on level 00 as it should, and then shot it
+	and saw it made a waterpool when it died, it also made the correct sound and gave the correct points.
+	also i made sure it could not shoot a player in a fake wall and shot players in its line of sight.
+*/
+class RobotBoss : public BadGuy
+/*
+	I observed that the robot boss moved every 7th tick on level 00 as it should, and then shot it
+	and saw it made a hostage when it died, it also made the correct sound and gave the correct points.
+	also i made sure it could not shoot a player in a fake wall and shot players in its line of sight.
+*/
+class Bully : public BadGuy
+/*
+	First I made sure the bully picked up goodies correctly. Then I observed that the bully moved
+	every 7th tick on level 00 as it should, and then shot it and saw it dropped its picked up
+	goodies when it died, it also made the correct sound and gave the correct points. also i made
+	sure it could not shoot a player in a fake wall and shot players in its line of sight. Also
+	I verified that it changed directions randomly after moving a certain distance, which was also
+	picked randomly.
+*/
